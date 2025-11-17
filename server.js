@@ -2,14 +2,14 @@
 const express = require('express');
 const mysql = require('mysql2');
 const cors = require('cors');
-const dotenv = require('dotenv'); // <-- NEW
-const { v2: cloudinary } = require('cloudinary'); // <-- NEW
+const dotenv = require('dotenv');
+const { v2: cloudinary } = require('cloudinary');
 
 // 2. Load Environment Variables
-dotenv.config(); // <-- NEW
+dotenv.config();
 
 // 3. Configure Cloudinary
-cloudinary.config({ // <-- NEW
+cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
     api_key: process.env.CLOUDINARY_API_KEY,
     api_secret: process.env.CLOUDINARY_API_SECRET,
@@ -21,14 +21,13 @@ const PORT = 3000;
 
 // 5. Set up Middleware
 app.use(cors());
-// Increase the limit to handle large image (base64) strings
-app.use(express.json({ limit: '50mb' })); // <-- MODIFIED
+app.use(express.json({ limit: '50mb' })); // Increase limit for images
 
 // 6. Create the connection pool to your MySQL database
 const pool = mysql.createPool({
     host: 'localhost',
     user: 'root',
-    password: 'ClassSight123!', // <-- Make sure this is still your password
+    password: 'ClassSight123!', // <-- Your password
     database: 'caleve',
     waitForConnections: true,
     connectionLimit: 10,
@@ -76,7 +75,6 @@ app.post('/api/register', async (req, res) => {
 
 // 9. User Login
 app.post('/api/login', async (req, res) => {
-    // (This endpoint is unchanged)
     const { email, password } = req.body;
     if (!email || !password) {
         return res.status(400).json({ message: 'Email and password are required!' });
@@ -109,7 +107,6 @@ app.post('/api/login', async (req, res) => {
 
 // 10. Create a new Event
 app.post('/api/events', async (req, res) => {
-    // (This endpoint is unchanged)
     const { name, description, venue, date, time, creator_id, image } = req.body;
 
     if (!name || !date || !time || !creator_id) {
@@ -121,7 +118,6 @@ app.post('/api/events', async (req, res) => {
     try {
         await connection.beginTransaction(); 
         
-        // --- Step 1: Insert the Event ---
         const eventSql = `
             INSERT INTO events 
             (name, description, venue, event_date, event_time, creator_id) 
@@ -132,7 +128,6 @@ app.post('/api/events', async (req, res) => {
         const newEventId = eventResult.insertId;
         let imageUrl = null;
 
-        // --- Step 2: Upload Image (if one was provided) ---
         if (image) {
             console.log('Image provided, uploading to Cloudinary...');
             const uploaded = await cloudinary.uploader.upload(image, {
@@ -144,7 +139,6 @@ app.post('/api/events', async (req, res) => {
             imageUrl = uploaded.secure_url;
             console.log('Upload successful:', imageUrl);
 
-            // --- Step 3: Save Image URL to 'event_images' table ---
             const imageSql = `
                 INSERT INTO event_images (event_id, image_url)
                 VALUES (?, ?)
@@ -152,7 +146,6 @@ app.post('/api/events', async (req, res) => {
             await connection.query(imageSql, [newEventId, imageUrl]);
         }
 
-        // --- Step 4: Commit Transaction ---
         await connection.commit();
 
         console.log('New event created by user:', creator_id);
@@ -171,11 +164,9 @@ app.post('/api/events', async (req, res) => {
     }
 });
 
-// 11. Get all Events (MODIFIED SQL QUERY)
+// 11. Get all Events
 app.get('/api/events', async (req, res) => {
     try {
-        // This query now joins 3 tables: events, users, and event_images
-        // We use LEFT JOIN for event_images so we still get events that have no image
         const sql = `
             SELECT 
                 events.*, 
@@ -199,7 +190,6 @@ app.get('/api/events', async (req, res) => {
 
 // 12. Set Attendance
 app.post('/api/attendance', async (req, res) => {
-    // (This endpoint is unchanged)
     const { event_id, user_id, status } = req.body;
     if (!event_id || !user_id || !status) {
         return res.status(400).json({ message: 'Event ID, User ID, and Status are required.' });
@@ -221,10 +211,10 @@ app.post('/api/attendance', async (req, res) => {
         res.status(500).json({ message: 'Server error when setting attendance.', error: error.message });
     }
 });
+
 // 13. Get a user's personal calendar (all "accepted" events)
 app.get('/api/my-calendar', async (req, res) => {
     
-    // Get the user_id from the query parameter (e.g., /api/my-calendar?user_id=1)
     const { user_id } = req.query;
 
     if (!user_id) {
@@ -232,11 +222,6 @@ app.get('/api/my-calendar', async (req, res) => {
     }
 
     try {
-        // This query JOINS events, event_attendance, and users
-        // It finds all events where:
-        // 1. The event_attendance.user_id matches our user
-        // 2. The event_attendance.status is 'accepted'
-        // 3. It also joins event_images to get the poster
         const sql = `
             SELECT 
                 events.*, 
@@ -253,16 +238,55 @@ app.get('/api/my-calendar', async (req, res) => {
         `;
         
         const [myEvents] = await pool.query(sql, [user_id]);
-
-        // Send the list of events back to the frontend
         res.status(200).json(myEvents);
 
     } catch (error) {
-        // Handle any errors
         console.error('Get My Calendar error:', error);
         res.status(500).json({ message: 'Server error when fetching calendar.', error: error.message });
     }
 });
+
+// --- NEW ---
+// 14. Get a specific user's profile and all their events
+app.get('/api/users/:userId/events', async (req, res) => {
+    try {
+        const { userId } = req.params; // Get the ID from the URL (e.g., /api/users/1/events)
+
+        // Step 1: Get the user's info (just username for now)
+        const [userRows] = await pool.query('SELECT username, acc_id FROM users WHERE acc_id = ?', [userId]);
+        
+        if (userRows.length === 0) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        const userProfile = userRows[0];
+
+        // Step 2: Get all events posted by that user
+        const eventsSql = `
+            SELECT 
+                events.*, 
+                users.username AS creator_username,
+                event_images.image_url 
+            FROM events
+            JOIN users ON events.creator_id = users.acc_id
+            LEFT JOIN event_images ON events.event_id = event_images.event_id
+            WHERE events.creator_id = ?
+            ORDER BY events.created_at DESC
+        `;
+        const [events] = await pool.query(eventsSql, [userId]);
+
+        // Send back the combined data
+        res.status(200).json({
+            profile: userProfile,
+            events: events
+        });
+
+    } catch (error) {
+        console.error('Get User Profile error:', error);
+        res.status(500).json({ message: 'Server error when fetching user profile.', error: error.message });
+    }
+});
+// --- END OF NEW ---
+
 
 // --- START THE SERVER ---
 app.listen(PORT, () => {

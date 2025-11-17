@@ -11,13 +11,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const storyFeedContainer = document.getElementById('storyFeedContainer');
     const calendarView = document.getElementById('calendar-view');
     const calendarEventList = document.getElementById('calendar-event-list');
-    
-    // --- NEW: Main post feed container ---
     const mainFeedPostsContainer = document.getElementById('main-feed-posts');
 
+    // --- NEW: Profile Page Elements ---
+    const profileView = document.getElementById('profile-view');
+    const profileAvatarLetter = document.getElementById('profile-avatar-letter');
+    const profileUsername = document.getElementById('profile-username');
+    const profileEmail = document.getElementById('profile-email');
+    const profileEventList = document.getElementById('profile-event-list');
+    
+    // Sidebar Buttons
     const homeButton = Array.from(document.querySelectorAll('.sidebar-menu-item strong'))
                             .find(el => el.textContent === 'Home').closest('.sidebar-menu-item');
     const myCalendarButton = document.getElementById('myCalendarButton');
+    const createEventMenuButton = document.getElementById('createEventMenuButton');
+    const myProfileButton = document.getElementById('myProfileButton'); // <-- NEW
 
     // Get right sidebar elements
     const userProfileInfo = document.getElementById('user-profile-info');
@@ -28,10 +36,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalClose = document.getElementById('modal-close');
     const modalEventName = document.getElementById('modal-eventName');
     const modalEventDetails = document.getElementById('modal-eventDetails');
-    // Modal buttons are no longer needed here
+    
+    // Other form elements
+    const registerButton = document.getElementById('registerButton');
+    const loginButton = document.getElementById('loginButton');
+    const logoutButton = document.getElementById('logoutButton');
+    const createEventButton = document.getElementById('createEventButton');
+    const eventImageInput = document.getElementById('eventImage');
+    const eventAnonymousInput = document.getElementById('eventAnonymous');
 
     // --- REGISTRATION ---
-    const registerButton = document.getElementById('registerButton');
     registerButton.addEventListener('click', () => {
         const username = document.getElementById('username').value;
         const email = document.getElementById('email').value;
@@ -55,7 +69,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- LOGIN ---
-    const loginButton = document.getElementById('loginButton');
     loginButton.addEventListener('click', () => {
         const email = document.getElementById('loginEmail').value;
         const password = document.getElementById('loginPassword').value;
@@ -78,33 +91,51 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- LOGOUT ---
-    const logoutButton = document.getElementById('logoutButton');
     logoutButton.addEventListener('click', () => {
         loggedInUser = null;
-        loginRegisterArea.style.display = 'block';
-        eventForm.style.display = 'none';
+        // Show login view
+        showView('login');
         userProfileInfo.style.display = 'none';
-        calendarView.style.display = 'none';
-        mainFeedPostsContainer.style.display = 'none'; // Hide post feed
-        storyFeedContainer.style.display = 'flex';
         responseArea.textContent = 'Logged out.';
-        fetchEvents(); // Refresh feed
+        fetchEvents(); // Refresh feed (will show "please log in")
     });
 
     // --- NAVIGATION / PAGE SWITCHING (MODIFIED) ---
-    homeButton.addEventListener('click', () => {
-        storyFeedContainer.style.display = 'flex';
-        mainFeedPostsContainer.style.display = 'flex'; // Show post feed
+    
+    // Helper to show/hide main content views
+    function showView(viewToShow) {
+        // Hide all main views
+        mainFeedPostsContainer.style.display = 'none';
         calendarView.style.display = 'none';
-        eventForm.style.display = 'none'; // Hide form
+        eventForm.style.display = 'none';
+        profileView.style.display = 'none';
+        loginRegisterArea.style.display = 'none';
+        storyFeedContainer.style.display = 'none'; // Hide story feed by default
 
-        if (loggedInUser) {
-            loginRegisterArea.style.display = 'none';
-        } else {
+        // Show the requested view
+        if (viewToShow === 'home') {
+            storyFeedContainer.style.display = 'flex';
+            mainFeedPostsContainer.style.display = 'flex';
+        } else if (viewToShow === 'calendar') {
+            calendarView.style.display = 'block';
+        } else if (viewToShow === 'create') {
+            storyFeedContainer.style.display = 'flex';
+            eventForm.style.display = 'block';
+        } else if (viewToShow === 'profile') {
+            profileView.style.display = 'block';
+        } else if (viewToShow === 'login') {
+            storyFeedContainer.style.display = 'flex';
             loginRegisterArea.style.display = 'block';
-            mainFeedPostsContainer.style.display = 'none'; // Hide feed if logged out
         }
-        fetchEvents();
+    }
+
+    homeButton.addEventListener('click', () => {
+        if (loggedInUser) {
+            showView('home');
+            fetchEvents();
+        } else {
+            showView('login');
+        }
     });
 
     myCalendarButton.addEventListener('click', () => {
@@ -112,31 +143,29 @@ document.addEventListener('DOMContentLoaded', () => {
             responseArea.textContent = 'Please log in to see your calendar.';
             return;
         }
-        storyFeedContainer.style.display = 'none';
-        loginRegisterArea.style.display = 'none';
-        eventForm.style.display = 'none';
-        mainFeedPostsContainer.style.display = 'none'; // Hide post feed
-        calendarView.style.display = 'block';
+        showView('calendar');
         fetchMyCalendar();
     });
 
-    // --- CREATE EVENT (POST STORY) (MODIFIED) ---
-    const createEventMenuButton = document.getElementById('createEventMenuButton');
     createEventMenuButton.addEventListener('click', () => {
-        if (loggedInUser) {
-            eventForm.style.display = 'block'; // Show form
-            loginRegisterArea.style.display = 'none';
-            calendarView.style.display = 'none';
-            mainFeedPostsContainer.style.display = 'none'; // Hide post feed
-            storyFeedContainer.style.display = 'flex';
-        } else {
+        if (!loggedInUser) {
             responseArea.textContent = 'Please log in to create an event.';
+            return;
         }
+        showView('create');
+    });
+    
+    // --- NEW: Profile Button Listener ---
+    myProfileButton.addEventListener('click', () => {
+        if (!loggedInUser) {
+            responseArea.textContent = 'Please log in to see your profile.';
+            return;
+        }
+        // Show our own profile page
+        showProfilePage(loggedInUser.acc_id);
     });
 
-    // (Create event button logic is unchanged)
-    const createEventButton = document.getElementById('createEventButton');
-    const eventImageInput = document.getElementById('eventImage');
+    // --- CREATE EVENT (POST STORY) (MODIFIED) ---
     createEventButton.addEventListener('click', () => {
         if (!loggedInUser) {
             responseArea.textContent = 'You must be logged in to create an event.';
@@ -155,6 +184,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function postEvent(imageBase64) {
         responseArea.textContent = 'Creating event...';
+        
         const eventData = {
             name: document.getElementById('eventName').value,
             description: document.getElementById('eventDesc').value,
@@ -162,7 +192,8 @@ document.addEventListener('DOMContentLoaded', () => {
             date: document.getElementById('eventDate').value,
             time: document.getElementById('eventTime').value,
             creator_id: loggedInUser.acc_id,
-            image: imageBase64
+            image: imageBase64,
+            is_anonymous: eventAnonymousInput.checked // <-- Send anonymous flag
         };
 
         fetch('http://localhost:3000/api/events', {
@@ -174,21 +205,23 @@ document.addEventListener('DOMContentLoaded', () => {
         .then(data => {
             responseArea.textContent = JSON.stringify(data, null, 2);
             if (data.message === 'Event created successfully!') {
+                // Clear form
                 document.getElementById('eventName').value = '';
                 document.getElementById('eventDesc').value = '';
                 document.getElementById('eventVenue').value = '';
                 document.getElementById('eventDate').value = '';
                 document.getElementById('eventTime').value = '';
                 eventImageInput.value = '';
+                eventAnonymousInput.checked = false; // <-- Reset checkbox
+                
                 homeButton.click(); // Click home to show the new post
             }
         })
         .catch(handleError);
     }
     
-    // --- FETCH ALL EVENTS (HEAVILY MODIFIED) ---
+    // --- FETCH ALL EVENTS (MODIFIED) ---
     function fetchEvents() {
-        // Only fetch if logged in
         if (!loggedInUser) {
             storyFeedContainer.innerHTML = '<p style="color: #a8a8a8;">Please log in to see events.</p>';
             mainFeedPostsContainer.innerHTML = '';
@@ -199,14 +232,14 @@ document.addEventListener('DOMContentLoaded', () => {
             .then(response => response.json())
             .then(events => {
                 storyFeedContainer.innerHTML = ''; 
-                mainFeedPostsContainer.innerHTML = ''; // Clear the post feed
+                mainFeedPostsContainer.innerHTML = '';
 
                 if (events.length === 0) {
                     storyFeedContainer.innerHTML = '<p style="color: #a8a8a8;">No stories posted.</p>';
                     mainFeedPostsContainer.innerHTML = '<p style="color: #a8a8a8; text-align: center; font-size: 16px;">No events posted yet.</p>';
                 } else {
                     events.forEach(event => {
-                        // 1. Build Story Circle (Unchanged)
+                        // 1. Build Story Circle
                         const circle = document.createElement('div');
                         circle.className = 'story-circle';
                         circle.textContent = event.name.charAt(0).toUpperCase();
@@ -215,48 +248,18 @@ document.addEventListener('DOMContentLoaded', () => {
                         storyFeedContainer.appendChild(circle);
 
                         // 2. Build Post Card
-                        const postCard = document.createElement('div');
-                        postCard.className = 'post-card';
+                        const postCard = buildPostCard(event);
                         
-                        const eventDate = new Date(event.event_date).toLocaleDateString();
-                        let imageHtml = '';
-                        if (event.image_url) {
-                            imageHtml = `<img src="${event.image_url}" alt="${event.name} Poster" class="post-card-image">`;
+                        // --- NEW: Make username clickable IF NOT anonymous ---
+                        const usernameElement = postCard.querySelector('.post-card-header-name');
+                        if (event.creator_id !== 0) { // 0 is our anonymous ID
+                            usernameElement.classList.add('clickable');
+                            usernameElement.addEventListener('click', () => {
+                                showProfilePage(event.creator_id);
+                            });
+                        } else {
+                             usernameElement.classList.add('anonymous');
                         }
-
-                        // Build the card's inner HTML
-                        postCard.innerHTML = `
-                            <div class="post-card-header">
-                                <div class="post-card-header-img">${event.creator_username.charAt(0).toUpperCase()}</div>
-                                <span class="post-card-header-name">${event.creator_username}</span>
-                            </div>
-                            ${imageHtml}
-                            <div class="post-card-actions">
-                                <button class="post-card-accept-btn" data-event-id="${event.event_id}">Accept</button>
-                                <button class="post-card-decline-btn" data-event-id="${event.event_id}">Decline</button>
-                            </div>
-                            <div class="post-card-body">
-                                <p class="title">${event.name}</p>
-                                <p>${event.description}</p>
-                                <p style="margin-top: 10px;"><strong>When:</strong> ${eventDate} at ${event.event_time}</p>
-                                <p><strong>Where:</strong> ${event.venue}</p>
-                            </div>
-                        `;
-                        
-                        // Add listeners to the new buttons on the card
-                        postCard.querySelector('.post-card-accept-btn').addEventListener('click', (e) => {
-                            setAttendance(event.event_id, 'accepted');
-                            // Give user feedback
-                            e.currentTarget.style.backgroundColor = '#4a9c4a';
-                            e.currentTarget.textContent = 'Accepted!';
-                        });
-                        postCard.querySelector('.post-card-decline-btn').addEventListener('click', (e) => {
-                            setAttendance(event.event_id, 'declined');
-                            // Give user feedback
-                            const acceptBtn = e.currentTarget.parentElement.querySelector('.post-card-accept-btn');
-                            acceptBtn.style.backgroundColor = '#5cb85c';
-                            acceptBtn.textContent = 'Accept';
-                        });
                         
                         mainFeedPostsContainer.appendChild(postCard);
                     });
@@ -281,6 +284,7 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
         }
         modalEventName.textContent = eventData.name;
+        // Use the creator_username from the event data (which could be "Anonymous")
         modalEventDetails.innerHTML = `
             ${imageHtml}
             <p><strong>By:</strong> ${eventData.creator_username}</p>
@@ -300,7 +304,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- ACCEPT / DECLINE (Unchanged, but now used by cards) ---
+    // --- ACCEPT / DECLINE ---
     function setAttendance(eventId, status) {
         if (!loggedInUser) {
             responseArea.textContent = 'You must be logged in to accept or decline an event.';
@@ -322,12 +326,10 @@ document.addEventListener('DOMContentLoaded', () => {
             responseArea.textContent = JSON.stringify(data, null, 2);
         })
         .catch(handleError);
-        
-        // No longer need to close modal
     }
 
     // --- FETCH MY CALENDAR (MODIFIED) ---
-    // Now uses the same post-card style
+    // Now re-uses the buildPostCard function
     function fetchMyCalendar() {
         if (!loggedInUser) return;
 
@@ -346,33 +348,105 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 myEvents.forEach(event => {
-                    // Reuse the post-card style
-                    const postCard = document.createElement('div');
-                    postCard.className = 'post-card';
+                    // Reuse the post-card builder!
+                    const postCard = buildPostCard(event);
                     
-                    const eventDate = new Date(event.event_date).toLocaleDateString();
-                    let imageHtml = '';
-                    if (event.image_url) {
-                        imageHtml = `<img src="${event.image_url}" alt="${event.name} Poster" class="post-card-image">`;
-                    }
-
-                    postCard.innerHTML = `
-                        <div class="post-card-header">
-                            <div class="post-card-header-img">${event.creator_username.charAt(0).toUpperCase()}</div>
-                            <span class="post-card-header-name">${event.creator_username}</span>
-                        </div>
-                        ${imageHtml}
-                        <div class="post-card-body">
-                            <p class="title">${event.name}</p>
-                            <p><strong>When:</strong> ${eventDate} at ${event.event_time}</p>
-                            <p><strong>Where:</strong> ${event.venue}</p>
-                            <p style="color: #5cb85c; margin-top: 10px;">✔ You have accepted this event.</p>
-                        </div>
+                    // Remove the action buttons, add a "Accepted" status
+                    postCard.querySelector('.post-card-actions').innerHTML = `
+                        <p style="color: #5cb85c; margin-top: 10px; padding: 0 15px;">✔ You have accepted this event.</p>
                     `;
                     calendarEventList.appendChild(postCard);
                 });
 
                 responseArea.textContent = 'Calendar loaded.';
+            })
+            .catch(handleError);
+    }
+
+    // --- NEW: Re-usable Post Card Builder ---
+    function buildPostCard(event) {
+        const postCard = document.createElement('div');
+        postCard.className = 'post-card';
+        
+        const eventDate = new Date(event.event_date).toLocaleDateString();
+        let imageHtml = '';
+        if (event.image_url) {
+            imageHtml = `<img src="${event.image_url}" alt="${event.name} Poster" class="post-card-image">`;
+        }
+
+        // Build the card's inner HTML
+        postCard.innerHTML = `
+            <div class="post-card-header">
+                <div class="post-card-header-img">${event.creator_username.charAt(0).toUpperCase()}</div>
+                <span class="post-card-header-name">${event.creator_username}</span>
+            </div>
+            ${imageHtml}
+            <div class="post-card-actions">
+                <button class="post-card-accept-btn" data-event-id="${event.event_id}">Accept</button>
+                <button class="post-card-decline-btn" data-event-id="${event.event_id}">Decline</button>
+            </div>
+            <div class="post-card-body">
+                <p class="title">${event.name}</p>
+                <p>${event.description}</p>
+                <p style="margin-top: 10px;"><strong>When:</strong> ${eventDate} at ${event.event_time}</p>
+                <p><strong>Where:</strong> ${event.venue}</p>
+            </div>
+        `;
+        
+        // Add listeners to the buttons (if they exist)
+        const acceptBtn = postCard.querySelector('.post-card-accept-btn');
+        if (acceptBtn) {
+            acceptBtn.addEventListener('click', (e) => {
+                setAttendance(event.event_id, 'accepted');
+                e.currentTarget.style.backgroundColor = '#4a9c4a';
+                e.currentTarget.textContent = 'Accepted!';
+            });
+            postCard.querySelector('.post-card-decline-btn').addEventListener('click', (e) => {
+                setAttendance(event.event_id, 'declined');
+                acceptBtn.style.backgroundColor = '#5cb85c';
+                acceptBtn.textContent = 'Accept';
+            });
+        }
+        
+        return postCard;
+    }
+
+    // --- NEW: Show Profile Page Function ---
+    function showProfilePage(userId) {
+        if (!loggedInUser) return;
+        
+        responseArea.textContent = 'Loading profile...';
+        profileEventList.innerHTML = 'Loading posts...';
+        showView('profile'); // Switch to the profile view
+
+        fetch(`http://localhost:3000/api/users/${userId}/events`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.message) { // Handle errors like "User not found"
+                   responseArea.textContent = data.message;
+                   profileEventList.innerHTML = `<p style="color: #a8a8a8;">${data.message}</p>`;
+                   return;
+                }
+
+                const profile = data.profile;
+                const events = data.events;
+
+                // 1. Fill profile header
+                profileUsername.textContent = profile.username;
+                profileAvatarLetter.textContent = profile.username.charAt(0).toUpperCase();
+                profileEmail.textContent = profile.email || ''; // Assuming email is fetched (we'll add it)
+
+                // 2. Fill profile event list
+                profileEventList.innerHTML = '';
+                if (events.length === 0) {
+                    profileEventList.innerHTML = '<p style="color: #a8a8a8;">This user has not posted any events.</p>';
+                } else {
+                    events.forEach(event => {
+                        const postCard = buildPostCard(event);
+                        profileEventList.appendChild(postCard);
+                    });
+                }
+                responseArea.textContent = `Profile for ${profile.username} loaded.`;
             })
             .catch(handleError);
     }
@@ -395,6 +469,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- INITIAL LOAD ---
-    // Show login screen, don't fetch events yet
+    // Start on the home/login page
     homeButton.click();
 });

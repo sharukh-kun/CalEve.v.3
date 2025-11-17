@@ -13,7 +13,7 @@
         <nav class="sidebar-left">
             <h1>Caleve</h1>
             <ul class="sidebar-menu">
-                <li class="sidebar-menu-item">
+                <li class="sidebar-menu-item" id="homeButton"> 
                     <span>🏠</span>
                     <strong>Home</strong>
                 </li>
@@ -24,6 +24,10 @@
                 <li class="sidebar-menu-item" id="createEventMenuButton">
                     <span>➕</span>
                     <strong>Create</strong>
+                </li>
+                <li class="sidebar-menu-item" id="myProfileButton">
+                    <span>👤</span>
+                    <strong>Profile</strong>
                 </li>
             </ul>
             <div class="sidebar-menu-item">
@@ -38,16 +42,26 @@
                 </div>
             
             <div id="calendar-view" style="display: none;">
-                <div class="form-section">
-                    <h2>My Accepted Events</h2>
-                    <div id="calendar-event-list">
-                        </div>
+                <div class="form-section" style="border: none; background: none;"> <h2>My Accepted Events</h2>
+                    <div id="calendar-event-list" style="margin-top: 20px;"></div>
                 </div>
             </div>
 
             <div id="main-feed-posts" style="display: none;">
                 </div>
 
+            <div id="profile-view" style="display: none;">
+                <div class="profile-header">
+                    <div class="profile-avatar" id="profile-avatar-letter"></div>
+                    <div class="profile-info">
+                        <h2 id="profile-username"></h2>
+                        <p id="profile-email"></p>
+                    </div>
+                </div>
+                <h3 style="margin-top: 20px;">Posts</h3>
+                <div id="profile-event-list" style="margin-top: 10px;">
+                    </div>
+            </div>
             <div id="form-container">
                 
                 <div id="login-register-area">
@@ -92,13 +106,14 @@
                     
                     <div style="margin-top: 10px;">
                         <label for="eventImage">Event Poster</label>
-                        <input type="file" id="eventImage"
-                            accept="image/png, image/jpeg"
-                            style="padding: 0; border: none;"
-                        >
+                        <input type="file" id="eventImage" accept="image/png, image/jpeg" style="padding: 0; border: none;">
                     </div>
-                    
-                    <button id="createEventButton">Post Event</button>
+
+                    <div style="margin-top: 15px; display: flex; align-items: center; gap: 10px;">
+                         <input type="checkbox" id="eventAnonymous" style="width: auto;">
+                         <label for="eventAnonymous" style="margin-bottom: 0;">Post Anonymously</label>
+                    </div>
+                    <button id="createEventButton" style="margin-top: 15px;">Post Event</button>
                 </div>
 
             </div>
