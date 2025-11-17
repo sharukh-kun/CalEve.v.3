@@ -105,9 +105,10 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
-// 10. Create a new Event
+// 10. Create a new Event (MODIFIED for Anonymous)
 app.post('/api/events', async (req, res) => {
-    const { name, description, venue, date, time, creator_id, image } = req.body;
+    // Added 'is_anonymous'
+    const { name, description, venue, date, time, creator_id, image, is_anonymous } = req.body;
 
     if (!name || !date || !time || !creator_id) {
         return res.status(400).json({ message: 'Event Name, Date, Time, and Creator ID are required.' });
@@ -118,16 +119,19 @@ app.post('/api/events', async (req, res) => {
     try {
         await connection.beginTransaction(); 
         
+        // --- Step 1: Insert the Event (Added is_anonymous) ---
         const eventSql = `
             INSERT INTO events 
-            (name, description, venue, event_date, event_time, creator_id) 
-            VALUES (?, ?, ?, ?, ?, ?)
+            (name, description, venue, event_date, event_time, creator_id, is_anonymous) 
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         `;
-        const [eventResult] = await connection.query(eventSql, [name, description, venue, date, time, creator_id]);
+        // Pass is_anonymous (true/false) to the query
+        const [eventResult] = await connection.query(eventSql, [name, description, venue, date, time, creator_id, is_anonymous || false]);
         
         const newEventId = eventResult.insertId;
         let imageUrl = null;
 
+        // --- Step 2: Upload Image (if one was provided) ---
         if (image) {
             console.log('Image provided, uploading to Cloudinary...');
             const uploaded = await cloudinary.uploader.upload(image, {
@@ -139,6 +143,7 @@ app.post('/api/events', async (req, res) => {
             imageUrl = uploaded.secure_url;
             console.log('Upload successful:', imageUrl);
 
+            // --- Step 3: Save Image URL to 'event_images' table ---
             const imageSql = `
                 INSERT INTO event_images (event_id, image_url)
                 VALUES (?, ?)
@@ -146,6 +151,7 @@ app.post('/api/events', async (req, res) => {
             await connection.query(imageSql, [newEventId, imageUrl]);
         }
 
+        // --- Step 4: Commit Transaction ---
         await connection.commit();
 
         console.log('New event created by user:', creator_id);
@@ -164,13 +170,23 @@ app.post('/api/events', async (req, res) => {
     }
 });
 
-// 11. Get all Events
+// 11. Get all Events (MODIFIED for Anonymous)
 app.get('/api/events', async (req, res) => {
     try {
+        // This query now uses a CASE statement
+        // If is_anonymous is true, it returns "Anonymous" as the username and 0 as the ID
+        // Otherwise, it returns the real creator info
         const sql = `
             SELECT 
                 events.*, 
-                users.username AS creator_username,
+                (CASE
+                    WHEN events.is_anonymous = 1 THEN 'Anonymous'
+                    ELSE users.username
+                END) AS creator_username,
+                (CASE
+                    WHEN events.is_anonymous = 1 THEN 0
+                    ELSE events.creator_id
+                END) AS creator_id,
                 event_images.image_url 
             FROM events
             JOIN users ON events.creator_id = users.acc_id
@@ -178,10 +194,8 @@ app.get('/api/events', async (req, res) => {
             WHERE users.status = 'active'
             ORDER BY events.event_date, events.event_time ASC
         `;
-        
         const [events] = await pool.query(sql);
         res.status(200).json(events);
-
     } catch (error) {
         console.error('Get Events error:', error);
         res.status(500).json({ message: 'Server error when fetching events.', error: error.message });
@@ -246,21 +260,25 @@ app.get('/api/my-calendar', async (req, res) => {
     }
 });
 
-// --- NEW ---
-// 14. Get a specific user's profile and all their events
+// 14. Get a specific user's profile and all their NON-ANONYMOUS events
 app.get('/api/users/:userId/events', async (req, res) => {
     try {
-        const { userId } = req.params; // Get the ID from the URL (e.g., /api/users/1/events)
+        const { userId } = req.params;
+        
+        // Check for '0' (our anonymous ID)
+        if (userId === '0' || !userId) {
+             return res.status(404).json({ message: 'Cannot get profile for Anonymous user.' });
+        }
 
-        // Step 1: Get the user's info (just username for now)
-        const [userRows] = await pool.query('SELECT username, acc_id FROM users WHERE acc_id = ?', [userId]);
+        // Step 1: Get the user's info
+        const [userRows] = await pool.query('SELECT username, acc_id, email FROM users WHERE acc_id = ?', [userId]);
         
         if (userRows.length === 0) {
             return res.status(404).json({ message: 'User not found' });
         }
         const userProfile = userRows[0];
 
-        // Step 2: Get all events posted by that user
+        // Step 2: Get all non-anonymous events posted by that user
         const eventsSql = `
             SELECT 
                 events.*, 
@@ -269,7 +287,7 @@ app.get('/api/users/:userId/events', async (req, res) => {
             FROM events
             JOIN users ON events.creator_id = users.acc_id
             LEFT JOIN event_images ON events.event_id = event_images.event_id
-            WHERE events.creator_id = ?
+            WHERE events.creator_id = ? AND events.is_anonymous = 0
             ORDER BY events.created_at DESC
         `;
         const [events] = await pool.query(eventsSql, [userId]);
@@ -285,7 +303,22 @@ app.get('/api/users/:userId/events', async (req, res) => {
         res.status(500).json({ message: 'Server error when fetching user profile.', error: error.message });
     }
 });
-// --- END OF NEW ---
+
+// 15. Get the logged-in user's profile (placeholder)
+// A real app would get this from a JWT, but we use it for the "My Profile" button
+app.get('/api/me', async (req, res) => {
+    const { user_id } = req.query;
+    if (!user_id) {
+        return res.status(401).json({ message: 'Not logged in' });
+    }
+    
+    const [userRows] = await pool.query('SELECT username, acc_id, email FROM users WHERE acc_id = ?', [user_id]);
+    
+    if (userRows.length === 0) {
+        return res.status(404).json({ message: 'User not found' });
+    }
+    res.status(200).json(userRows[0]);
+});
 
 
 // --- START THE SERVER ---
