@@ -8,7 +8,44 @@
 </head>
 <body>
 
-    <div class="main-container">
+    <div id="login-page" style="display: none;">
+        <div class="login-container">
+            <div class="form-section" id="login-form">
+                <h1>Caleve</h1>
+                <h2>Login</h2>
+                <div>
+                    <label for="loginEmail">Email</label>
+                    <input type="email" id="loginEmail" placeholder="user@nmamit.in">
+                </div>
+                <div>
+                    <label for="loginPassword">Password</label>
+                    <input type="password" id="loginPassword" placeholder="Password">
+                </div>
+                <button id="loginButton">Login</button>
+            </div>
+
+            <div class="form-section" id="register-form" style="margin-top: 20px;">
+                <h2>Register a New User</h2>
+                <div>
+                    <label for="username">Username</label>
+                    <input type="text" id="username" placeholder="Username">
+                </div>
+                <div>
+                    <label for="email">Email</label>
+                    <input type="email" id="email" placeholder="user@nmamit.in">
+                </div>
+                <div>
+                    <label for="password">Password</label>
+                    <input type="password" id="password" placeholder="Password">
+                </div>
+                <button id="registerButton">Register</button>
+            </div>
+            <pre id="login-response-area" style="display: none; margin-top: 15px;"></pre>
+        </div>
+    </div>
+
+
+    <div class="main-container" id="main-container" style="display: none;">
 
         <nav class="sidebar-left">
             <h1>Caleve</h1>
@@ -42,12 +79,34 @@
                 </div>
             
             <div id="calendar-view" style="display: none;">
-                <div class="form-section" style="border: none; background: none;">
-                    <h2>My Accepted Events</h2>
-                    <div id="calendar-event-list" style="margin-top: 20px;"></div>
+                
+                <div class="calendar-header form-section">
+                    <button id="calendar-prev-month" class="btn">&lt; Prev</button>
+                    <h2 id="calendar-month-year">Month Year</h2>
+                    <button id="calendar-next-month" class="btn">Next &gt;</button>
+                </div>
+
+                <div class="calendar-container">
+                    
+                    <div class="calendar-grid-area">
+                        <div class="calendar-grid-header">Sun</div>
+                        <div class="calendar-grid-header">Mon</div>
+                        <div class="calendar-grid-header">Tue</div>
+                        <div class="calendar-grid-header">Wed</div>
+                        <div class="calendar-grid-header">Thu</div>
+                        <div class="calendar-grid-header">Fri</div>
+                        <div class="calendar-grid-header">Sat</div>
+                        <div id="calendar-grid-body"></div>
+                    </div>
+
+                    <div class="calendar-sidebar form-section">
+                        <h3>Events on <span id="sidebar-date">...</span></h3>
+                        <ul id="sidebar-event-list">
+                            </ul>
+                    </div>
+
                 </div>
             </div>
-
             <div id="main-feed-posts" style="display: none;">
                 </div>
 
@@ -63,40 +122,8 @@
                 <div id="profile-event-list" style="margin-top: 10px;">
                     </div>
             </div>
+
             <div id="form-container">
-                
-                <div id="login-register-area">
-                    <div class="form-section" id="register-form">
-                        <h2>Register a New User</h2>
-                        <div>
-                            <label for="username">Username</label>
-                            <input type="text" id="username" placeholder="Username">
-                        </div>
-                        <div>
-                            <label for="email">Email</label>
-                            <input type="email" id="email" placeholder="user@nmamit.in">
-                        </div>
-                        <div>
-                            <label for="password">Password</label>
-                            <input type="password" id="password" placeholder="Password">
-                        </div>
-                        <button id="registerButton">Register</button>
-                    </div>
-
-                    <div class="form-section" id="login-form">
-                        <h2>Login</h2>
-                        <div>
-                            <label for="loginEmail">Email</label>
-                            <input type="email" id="loginEmail" placeholder="user@nmamit.in">
-                        </div>
-                        <div>
-                            <label for="loginPassword">Password</label>
-                            <input type="password" id="loginPassword" placeholder="Password">
-                        </div>
-                        <button id="loginButton">Login</button>
-                    </div>
-                </div>
-
                 <div class="form-section" id="event-form" style="display: none;">
                     <h2>Create New Event (Story)</h2>
                     <input type="text" id="eventName" placeholder="Event Name">
@@ -137,7 +164,17 @@
         <div class="modal-content">
             <h3 id="modal-eventName">Event Name</h3>
             <p id="modal-eventDetails">Details about the event...</p>
-            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="clash-modal">
+        <div class="modal-content">
+            <h3 style="color: #ed4956;">Event Clash Detected!</h3>
+            <p>You have another event at this time. Please choose which event to accept.</p>
+            <div id="clash-options">
+                </div>
+            <button id="clash-cancel-btn" style="background-color: #a8a8a8; margin-top: 10px;">Cancel</button>
+        </div>
     </div>
 
     <script src="script.js"></script>
