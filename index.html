@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Caleve</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <div class="main-container">
+
+        <nav class="sidebar-left">
+            <h1>Caleve</h1>
+            <ul class="sidebar-menu">
+                <li class="sidebar-menu-item">
+                    <span>🏠</span>
+                    <strong>Home</strong>
+                </li>
+                <li class="sidebar-menu-item">
+                    <span>📅</span>
+                    <strong>My Calendar</strong>
+                </li>
+                <li class="sidebar-menu-item" id="createEventMenuButton">
+                    <span>➕</span>
+                    <strong>Create</strong>
+                </li>
+            </ul>
+            <div class="sidebar-menu-item">
+                <span>⚙️</span>
+                <strong>More</strong>
+            </div>
+        </nav>
+
+        <main class="main-feed">
+            
+            <div class="story-feed" id="storyFeedContainer">
+                </div>
+
+            <div id="form-container">
+                
+                <div id="login-register-area">
+                    <div class="form-section" id="register-form">
+                        <h2>Register a New User</h2>
+                        <div>
+                            <label for="username">Username</label>
+                            <input type="text" id="username" placeholder="Username">
+                        </div>
+                        <div>
+                            <label for="email">Email</label>
+                            <input type="email" id="email" placeholder="user@nmamit.in">
+                        </div>
+                        <div>
+                            <label for="password">Password</label>
+                            <input type="password" id="password" placeholder="Password">
+                        </div>
+                        <button id="registerButton">Register</button>
+                    </div>
+
+                    <div class="form-section" id="login-form">
+                        <h2>Login</h2>
+                        <div>
+                            <label for="loginEmail">Email</label>
+                            <input type="email" id="loginEmail" placeholder="user@nmamit.in">
+                        </div>
+                        <div>
+                            <label for="loginPassword">Password</label>
+                            <input type="password" id="loginPassword" placeholder="Password">
+                        </div>
+                        <button id="loginButton">Login</button>
+                    </div>
+                </div>
+
+                <div class="form-section" id="event-form">
+                    <h2>Create New Event (Story)</h2>
+                    <input type="text" id="eventName" placeholder="Event Name">
+                    <input type="text" id="eventDesc" placeholder="Description">
+                    <input type="text" id="eventVenue" placeholder="Venue">
+                    <input type="date" id="eventDate">
+                    <input type="time" id="eventTime">
+                    <button id="createEventButton">Post Event</button>
+                </div>
+
+            </div>
+        </main>
+
+        <aside class="sidebar-right">
+            
+            <div id="user-profile-info" style="display: none;">
+                <h3>Welcome, <span id="loggedInUsername"></span>!</h3>
+                <button id="logoutButton">Logout</button>
+            </div>
+            
+            <h3>Activity Log</h3>
+            <pre id="responseArea">Please log in...</pre>
+
+        </aside>
+
+    </div> <div class="modal-overlay" id="storyModal">
+        <span id="modal-close">&times;</span>
+        <div class="modal-content">
+            <h3 id="modal-eventName">Event Name</h3>
+            <p id="modal-eventDetails">Details about the event...</p>
+            <button id="modal-accept">Accept</button>
+            <button id="modal-decline">Decline</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,217 @@
+/* --- Global & Dark Mode Theme --- */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: #000;
+    color: #fff;
+    font-size: 14px;
+}
+
+/* --- Main 3-Column Layout --- */
+.main-container {
+    display: flex;
+}
+
+/* --- 1. Left Sidebar (Navbar) --- */
+.sidebar-left {
+    width: 245px;
+    height: 100vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    border-right: 1px solid #262626;
+    padding: 30px 20px;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-left h1 {
+    font-family: 'Cursive', sans-serif; /* A font to mimic "Instagram" */
+    font-size: 28px;
+    margin-bottom: 30px;
+    padding: 0 10px;
+}
+
+.sidebar-menu {
+    list-style: none;
+    flex-grow: 1; /* Pushes "More" to the bottom */
+}
+
+.sidebar-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 12px 10px;
+    margin-bottom: 8px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.sidebar-menu-item:hover {
+    background-color: #1a1a1a;
+}
+
+.sidebar-menu-item strong {
+    font-weight: 600;
+}
+
+/* --- 2. Main Feed (Content) --- */
+.main-feed {
+    /* Offset by the width of the sidebar */
+    margin-left: 245px; 
+    /* Offset by a future right sidebar */
+    width: calc(100% - 245px - 380px); 
+    max-width: 630px; /* Max width of an Insta feed */
+    padding: 20px;
+}
+
+.story-feed {
+    display: flex;
+    gap: 15px;
+    overflow-x: auto;
+    border: 1px solid #262626;
+    background-color: #121212;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+/* Hide scrollbar for a cleaner look */
+.story-feed::-webkit-scrollbar { display: none; }
+.story-feed { -ms-overflow-style: none; scrollbar-width: none; }
+
+.story-circle {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: transform 0.2s;
+}
+.story-circle:hover { transform: scale(1.05); }
+
+/* --- Forms Area --- */
+.form-section {
+    background: #121212;
+    border: 1px solid #262626;
+    padding: 20px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+}
+.form-section h2 { margin-bottom: 15px; font-size: 18px; }
+.form-section div { margin-bottom: 10px; }
+.form-section label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+}
+.form-section input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #363636;
+    border-radius: 5px;
+    background-color: #000;
+    color: #fff;
+}
+.form-section button {
+    font-size: 14px;
+    padding: 10px 14px;
+    background-color: #0095f6;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+}
+.form-section button:hover { background-color: #007ac5; }
+
+/* Hide forms by default */
+#event-form { display: none; }
+#login-register-area { display: block; }
+#logoutButton { background-color: #ed4956; margin-left: 10px; }
+
+/* --- 3. Right Sidebar (Suggestions) --- */
+.sidebar-right {
+    width: 380px;
+    height: 100vh;
+    position: fixed;
+    top: 0;
+    right: 0;
+    padding: 30px 20px;
+    font-size: 14px;
+}
+.sidebar-right h3 {
+    color: #a8a8a8;
+    font-weight: 600;
+    margin-bottom: 15px;
+}
+
+/* Server response box */
+pre {
+    background-color: #262626;
+    padding: 10px;
+    border-radius: 5px;
+    font-size: 12px;
+    white-space: pre-wrap; /* Wrap long text */
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid #363636;
+}
+
+/* --- Story Modal (Popup) --- */
+.modal-overlay {
+    display: none; /* Hidden by default */
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 100;
+    display: none; /* Re-declare to be sure */
+    align-items: center;
+    justify-content: center;
+}
+.modal-content {
+    background: #262626;
+    padding: 20px;
+    border-radius: 10px;
+    max-width: 500px;
+    width: 90%;
+    text-align: center;
+    border: 1px solid #363636;
+}
+.modal-content h3 { margin-bottom: 10px; font-size: 20px; }
+.modal-content p { margin-bottom: 15px; color: #a8a8a8; }
+.modal-content button {
+    padding: 10px 20px;
+    font-size: 16px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    color: white;
+    margin: 0 5px;
+}
+#modal-accept { background-color: #5cb85c; }
+#modal-decline { background-color: #d9534f; }
+#modal-close {
+    position: fixed; /* Fixed to viewport */
+    top: 15px;
+    right: 15px;
+    font-size: 40px;
+    color: white;
+    cursor: pointer;
+    font-weight: 200;
+}
