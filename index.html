@@ -17,7 +17,7 @@
                     <span>🏠</span>
                     <strong>Home</strong>
                 </li>
-                <li class="sidebar-menu-item">
+                <li class="sidebar-menu-item" id="myCalendarButton">
                     <span>📅</span>
                     <strong>My Calendar</strong>
                 </li>
@@ -35,6 +35,17 @@
         <main class="main-feed">
             
             <div class="story-feed" id="storyFeedContainer">
+                </div>
+            
+            <div id="calendar-view" style="display: none;">
+                <div class="form-section">
+                    <h2>My Accepted Events</h2>
+                    <div id="calendar-event-list">
+                        </div>
+                </div>
+            </div>
+
+            <div id="main-feed-posts" style="display: none;">
                 </div>
 
             <div id="form-container">
@@ -71,13 +82,22 @@
                     </div>
                 </div>
 
-                <div class="form-section" id="event-form">
+                <div class="form-section" id="event-form" style="display: none;">
                     <h2>Create New Event (Story)</h2>
                     <input type="text" id="eventName" placeholder="Event Name">
                     <input type="text" id="eventDesc" placeholder="Description">
                     <input type="text" id="eventVenue" placeholder="Venue">
                     <input type="date" id="eventDate">
                     <input type="time" id="eventTime">
+                    
+                    <div style="margin-top: 10px;">
+                        <label for="eventImage">Event Poster</label>
+                        <input type="file" id="eventImage"
+                            accept="image/png, image/jpeg"
+                            style="padding: 0; border: none;"
+                        >
+                    </div>
+                    
                     <button id="createEventButton">Post Event</button>
                 </div>
 
@@ -101,9 +121,7 @@
         <div class="modal-content">
             <h3 id="modal-eventName">Event Name</h3>
             <p id="modal-eventDetails">Details about the event...</p>
-            <button id="modal-accept">Accept</button>
-            <button id="modal-decline">Decline</button>
-        </div>
+            </div>
     </div>
 
     <script src="script.js"></script>

@@ -107,20 +107,19 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
-// 10. Create a new Event (MODIFIED FOR IMAGE UPLOAD)
+// 10. Create a new Event
 app.post('/api/events', async (req, res) => {
-    // We now expect an 'image' (base64 string) in the body
+    // (This endpoint is unchanged)
     const { name, description, venue, date, time, creator_id, image } = req.body;
 
     if (!name || !date || !time || !creator_id) {
         return res.status(400).json({ message: 'Event Name, Date, Time, and Creator ID are required.' });
     }
     
-    // We will use a database transaction to make sure both queries succeed or fail together
-    const connection = await pool.getConnection(); // Get a connection from the pool
+    const connection = await pool.getConnection(); 
 
     try {
-        await connection.beginTransaction(); // Start the transaction
+        await connection.beginTransaction(); 
         
         // --- Step 1: Insert the Event ---
         const eventSql = `
@@ -130,19 +129,19 @@ app.post('/api/events', async (req, res) => {
         `;
         const [eventResult] = await connection.query(eventSql, [name, description, venue, date, time, creator_id]);
         
-        const newEventId = eventResult.insertId; // Get the ID of the event we just created
-        let imageUrl = null; // Default to no image
+        const newEventId = eventResult.insertId;
+        let imageUrl = null;
 
         // --- Step 2: Upload Image (if one was provided) ---
         if (image) {
             console.log('Image provided, uploading to Cloudinary...');
             const uploaded = await cloudinary.uploader.upload(image, {
-                folder: `caleve_events`, // A folder in Cloudinary
-                public_id: `event_${newEventId}`, // Name the image after the event ID
+                folder: `caleve_events`,
+                public_id: `event_${newEventId}`,
                 overwrite: true,
                 resource_type: "image",
             });
-            imageUrl = uploaded.secure_url; // Get the URL
+            imageUrl = uploaded.secure_url;
             console.log('Upload successful:', imageUrl);
 
             // --- Step 3: Save Image URL to 'event_images' table ---
@@ -154,7 +153,6 @@ app.post('/api/events', async (req, res) => {
         }
 
         // --- Step 4: Commit Transaction ---
-        // If we get here, both queries were successful
         await connection.commit();
 
         console.log('New event created by user:', creator_id);
@@ -165,31 +163,34 @@ app.post('/api/events', async (req, res) => {
         });
 
     } catch (error) {
-        // If anything went wrong, roll back all changes
         await connection.rollback();
         console.error('Create Event error (rolling back):', error);
         res.status(500).json({ message: 'Server error during event creation.', error: error.message });
     } finally {
-        // Always release the connection back to the pool
         connection.release();
     }
 });
 
-// 11. Get all Events
+// 11. Get all Events (MODIFIED SQL QUERY)
 app.get('/api/events', async (req, res) => {
-    // (This endpoint is unchanged)
     try {
+        // This query now joins 3 tables: events, users, and event_images
+        // We use LEFT JOIN for event_images so we still get events that have no image
         const sql = `
             SELECT 
                 events.*, 
-                users.username AS creator_username 
+                users.username AS creator_username,
+                event_images.image_url 
             FROM events
             JOIN users ON events.creator_id = users.acc_id
+            LEFT JOIN event_images ON events.event_id = event_images.event_id
             WHERE users.status = 'active'
             ORDER BY events.event_date, events.event_time ASC
         `;
+        
         const [events] = await pool.query(sql);
         res.status(200).json(events);
+
     } catch (error) {
         console.error('Get Events error:', error);
         res.status(500).json({ message: 'Server error when fetching events.', error: error.message });
@@ -220,35 +221,48 @@ app.post('/api/attendance', async (req, res) => {
         res.status(500).json({ message: 'Server error when setting attendance.', error: error.message });
     }
 });
-
-// 13. Your friend's "My Calendar" endpoint (UNCOMMENT WHEN READY)
-/*
+// 13. Get a user's personal calendar (all "accepted" events)
 app.get('/api/my-calendar', async (req, res) => {
+    
+    // Get the user_id from the query parameter (e.g., /api/my-calendar?user_id=1)
     const { user_id } = req.query;
+
     if (!user_id) {
         return res.status(400).json({ message: 'A user_id query parameter is required.' });
     }
+
     try {
+        // This query JOINS events, event_attendance, and users
+        // It finds all events where:
+        // 1. The event_attendance.user_id matches our user
+        // 2. The event_attendance.status is 'accepted'
+        // 3. It also joins event_images to get the poster
         const sql = `
             SELECT 
                 events.*, 
-                users.username AS creator_username
+                users.username AS creator_username,
+                event_images.image_url
             FROM events
             JOIN event_attendance ON events.event_id = event_attendance.event_id
             JOIN users ON events.creator_id = users.acc_id
+            LEFT JOIN event_images ON events.event_id = event_images.event_id
             WHERE 
                 event_attendance.user_id = ? 
                 AND event_attendance.status = 'accepted'
             ORDER BY events.event_date, events.event_time ASC
         `;
+        
         const [myEvents] = await pool.query(sql, [user_id]);
+
+        // Send the list of events back to the frontend
         res.status(200).json(myEvents);
+
     } catch (error) {
+        // Handle any errors
         console.error('Get My Calendar error:', error);
         res.status(500).json({ message: 'Server error when fetching calendar.', error: error.message });
     }
 });
-*/
 
 // --- START THE SERVER ---
 app.listen(PORT, () => {

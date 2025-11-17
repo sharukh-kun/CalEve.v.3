@@ -215,3 +215,71 @@ pre {
     cursor: pointer;
     font-weight: 200;
 }
+
+/* --- NEW: Post Card Feed --- */
+#main-feed-posts {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+.post-card {
+    background-color: #121212;
+    border: 1px solid #262626;
+    border-radius: 8px;
+    overflow: hidden; /* To keep image corners rounded */
+}
+.post-card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 15px;
+}
+.post-card-header-img {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #363636;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+.post-card-header-name {
+    font-weight: 600;
+}
+.post-card-image {
+    width: 100%;
+    height: auto;
+    max-height: 700px; /* Limit tall images */
+    object-fit: cover;
+    border-top: 1px solid #262626;
+    border-bottom: 1px solid #262626;
+}
+.post-card-actions {
+    padding: 10px 15px;
+    display: flex;
+    gap: 10px;
+}
+.post-card-actions button {
+    padding: 8px 12px;
+    font-size: 14px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    color: white;
+}
+.post-card-accept-btn { background-color: #5cb85c; }
+.post-card-decline-btn { background-color: #d9534f; }
+.post-card-body {
+    padding: 0 15px 15px 15px;
+}
+.post-card-body p {
+    margin-bottom: 5px;
+    color: #a8a8a8;
+}
+.post-card-body .title {
+    font-weight: 600;
+    color: #fff;
+    font-size: 16px;
+}
