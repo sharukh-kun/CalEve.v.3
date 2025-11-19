@@ -68,7 +68,7 @@
                 </li>
             </ul>
             <div class="sidebar-menu-item">
-                <span>⚙️</span>
+                <span>⚙</span>
                 <strong>More</strong>
             </div>
         </nav>
@@ -159,7 +159,9 @@
 
         </aside>
 
-    </div> <div class="modal-overlay" id="storyModal">
+    </div>
+
+    <div class="modal-overlay" id="storyModal">
         <span id="modal-close">&times;</span>
         <div class="modal-content">
             <h3 id="modal-eventName">Event Name</h3>
@@ -174,6 +176,19 @@
             <div id="clash-options">
                 </div>
             <button id="clash-cancel-btn" style="background-color: #a8a8a8; margin-top: 10px;">Cancel</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="chat-modal">
+        <span id="chat-modal-close">&times;</span>
+        <div class="modal-content chat-modal-content">
+            <h3>Anonymous Chat: <span id="chat-event-name"></span></h3>
+            <div id="chat-messages"></div>
+            <div class="chat-input-area">
+                <input type="text" id="chat-input" placeholder="Type a message...">
+                <button id="chat-send-btn">Send</button>
+            </div>
+            <button id="chat-shield-btn" class="chat-shield-btn">🛡 Reveal Identity</button>
         </div>
     </div>
 
