@@ -59,6 +59,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const clashModal = document.getElementById('clash-modal');
     const clashOptions = document.getElementById('clash-options');
     const clashCancelBtn = document.getElementById('clash-cancel-btn');
+    const chatModal = document.getElementById('chat-modal');
+    const chatModalClose = document.getElementById('chat-modal-close');
+    const chatMessages = document.getElementById('chat-messages');
+    const chatInput = document.getElementById('chat-input');
+    const chatSendBtn = document.getElementById('chat-send-btn');
+    const chatShieldBtn = document.getElementById('chat-shield-btn');
+    const chatEventName = document.getElementById('chat-event-name');
     
     // Form Elements
     const registerButton = document.getElementById('registerButton');
@@ -68,6 +75,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const eventImageInput = document.getElementById('eventImage');
     const eventAnonymousInput = document.getElementById('eventAnonymous');
 
+    // Chat state
+    let currentChatId = null;
+    let currentChatEventId = null;
+    let chatPollInterval = null;
     
     // --- 1. INITIAL APP LOAD & PERSISTENT LOGIN ---
     
@@ -153,7 +164,6 @@ document.addEventListener('DOMContentLoaded', () => {
         calendarView.style.display = 'none';
         eventForm.style.display = 'none';
         profileView.style.display = 'none';
-        // loginRegisterArea is part of loginPage, so we don't touch it here
         storyFeedContainer.style.display = 'none'; 
 
         // Show the requested view
@@ -203,11 +213,65 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- 4. CORE FEATURES (Create, Fetch, Build Posts) ---
 
     createEventButton.addEventListener('click', () => {
-        // ... (code unchanged from your file) ...
+        const eventName = document.getElementById('eventName').value;
+        const eventDesc = document.getElementById('eventDesc').value;
+        const eventVenue = document.getElementById('eventVenue').value;
+        const eventDate = document.getElementById('eventDate').value;
+        const eventTime = document.getElementById('eventTime').value;
+        const isAnonymous = eventAnonymousInput.checked;
+        const imageFile = eventImageInput.files[0];
+
+        if (!eventName || !eventDate || !eventTime) {
+            responseArea.textContent = 'Event Name, Date, and Time are required!';
+            return;
+        }
+
+        responseArea.textContent = 'Creating event...';
+
+        if (imageFile) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const base64Image = reader.result;
+                postEvent(base64Image, isAnonymous);
+            };
+            reader.readAsDataURL(imageFile);
+        } else {
+            postEvent(null, isAnonymous);
+        }
     });
 
-    function postEvent(imageBase64) {
-        // ... (code unchanged from your file) ...
+    function postEvent(imageBase64, isAnonymous) {
+        const eventData = {
+            name: document.getElementById('eventName').value,
+            description: document.getElementById('eventDesc').value,
+            venue: document.getElementById('eventVenue').value,
+            date: document.getElementById('eventDate').value,
+            time: document.getElementById('eventTime').value,
+            creator_id: loggedInUser.acc_id,
+            image: imageBase64,
+            is_anonymous: isAnonymous
+        };
+
+        fetch('http://localhost:3000/api/events', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(eventData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            responseArea.textContent = JSON.stringify(data, null, 2);
+            if (data.message === 'Event created successfully!') {
+                document.getElementById('eventName').value = '';
+                document.getElementById('eventDesc').value = '';
+                document.getElementById('eventVenue').value = '';
+                document.getElementById('eventDate').value = '';
+                document.getElementById('eventTime').value = '';
+                eventImageInput.value = '';
+                eventAnonymousInput.checked = false;
+                fetchEvents();
+            }
+        })
+        .catch(handleError);
     }
     
     function fetchEvents() {
@@ -225,7 +289,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 mainFeedPostsContainer.innerHTML = '';
 
                 if (events.length === 0) {
-                    // ... (empty message) ...
+                    storyFeedContainer.innerHTML = '<p style="color: #a8a8a8;">No events yet. Create one!</p>';
+                    mainFeedPostsContainer.innerHTML = '<p style="color: #a8a8a8; text-align: center;">No events to display.</p>';
                 } else {
                     events.forEach(event => {
                         // 1. Build Story Circle
@@ -233,7 +298,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         circle.className = 'story-circle';
                         circle.textContent = event.name.charAt(0).toUpperCase();
                         circle.dataset.event = JSON.stringify(event);
-                        circle.addEventListener('click', () => openEventModal(event)); // Use new modal func
+                        circle.addEventListener('click', () => openEventModal(event));
                         storyFeedContainer.appendChild(circle);
 
                         // 2. Build Post Card
@@ -275,7 +340,7 @@ document.addEventListener('DOMContentLoaded', () => {
         modalEventDetails.innerHTML = `
             ${imageHtml}
             <p><strong>By:</strong> ${eventData.creator_username}</p>
-            <p><strong>When:</strong> ${eventDate} at ${eventData.event_time}</p>
+            <p><strong>When:</strong> <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi>e</mi><mi>v</mi><mi>e</mi><mi>n</mi><mi>t</mi><mi>D</mi><mi>a</mi><mi>t</mi><mi>e</mi></mrow><mi>a</mi><mi>t</mi></mrow><annotation encoding="application/x-tex">${eventDate} at </annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord"><span class="mord mathnormal">e</span><span class="mord mathnormal" style="margin-right:0.03588em;">v</span><span class="mord mathnormal">e</span><span class="mord mathnormal">n</span><span class="mord mathnormal">t</span><span class="mord mathnormal" style="margin-right:0.02778em;">D</span><span class="mord mathnormal">a</span><span class="mord mathnormal">t</span><span class="mord mathnormal">e</span></span><span class="mord mathnormal">a</span><span class="mord mathnormal">t</span></span></span></span>${eventData.event_time}</p>
             <p><strong>Where:</strong> ${eventData.venue}</p>
             <p>${eventData.description}</p>
         `;
@@ -298,7 +363,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return sendAttendanceRequest(eventId, status);
         }
 
-        responseArea.textContent = `Checking calendar for clashes...`;
+        responseArea.textContent = 'Checking calendar for clashes...';
         
         // 1. Get the event we're trying to accept
         const newEvent = allEventsCache.find(e => e.event_id === eventId);
@@ -310,7 +375,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // 2. Fetch all currently accepted events to check against
         const myCalendar = await fetchMyCalendarData();
         
-        // 3. Find a clash
+        // 3. Find a clash (compare epoch ms of date+time)
         const newEventTime = new Date(`${newEvent.event_date}T${newEvent.event_time}`).getTime();
         const clashingEvent = myCalendar.find(event => {
             const existingEventTime = new Date(`${event.event_date}T${event.event_time}`).getTime();
@@ -334,7 +399,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function sendAttendanceRequest(eventId, status) {
         if (!loggedInUser) return;
         
-        responseArea.textContent = `Setting status to ${status}...`;
+    responseArea.textContent = `Setting status to ${status}...`;
         const attendanceData = { event_id: eventId, user_id: loggedInUser.acc_id, status: status };
 
         fetch('http://localhost:3000/api/attendance', {
@@ -364,8 +429,8 @@ document.addEventListener('DOMContentLoaded', () => {
         clashOptions.innerHTML = ''; // Clear old options
         
         // Option 1: Keep the new event
-        const newEventBtn = document.createElement('button');
-        newEventBtn.textContent = `Accept: ${newEvent.name} (Declines the other)`;
+    const newEventBtn = document.createElement('button');
+    newEventBtn.textContent = `Accept: ${newEvent.name} (Declines the other)`;
         newEventBtn.style.backgroundColor = '#0095f6';
         newEventBtn.onclick = () => {
             sendAttendanceRequest(newEvent.event_id, 'accepted');
@@ -374,8 +439,8 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         // Option 2: Keep the existing event
-        const existingEventBtn = document.createElement('button');
-        existingEventBtn.textContent = `Keep: ${existingEvent.name} (Don't accept new one)`;
+    const existingEventBtn = document.createElement('button');
+    existingEventBtn.textContent = `Keep: ${existingEvent.name} (Don't accept new one)`;
         existingEventBtn.style.backgroundColor = '#5cb85c';
         existingEventBtn.onclick = () => {
             // We just don't do anything to the new event
@@ -429,7 +494,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // 1. Add padding days
         for (let i = 0; i < paddingDays; i++) {
-            calendarGridBody.innerHTML += `<div class="calendar-day padding"></div>`;
+            calendarGridBody.innerHTML += '<div class="calendar-day padding"></div>';
         }
 
         // 2. Add real days
@@ -455,7 +520,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (eventsOnThisDay.length > 0) {
                 eventsOnThisDay.forEach(() => {
-                    dayDiv.innerHTML += `<div class="calendar-event-dot"></div>`;
+                    dayDiv.innerHTML += '<div class="calendar-event-dot"></div>';
                 });
             }
             
@@ -506,7 +571,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         eventsOnThisDay.forEach(event => {
             const eventLi = document.createElement('li');
-            eventLi.textContent = `(${event.event_time.substring(0, 5)}) ${event.name}`;
+            eventLi.textContent = `${event.event_time.substring(0, 5)} ${event.name}`;
             eventLi.addEventListener('click', () => openEventModal(event));
             sidebarEventList.appendChild(eventLi);
         });
@@ -523,10 +588,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (event.image_url) {
             imageHtml = `<img src="${event.image_url}" alt="${event.name} Poster" class="post-card-image">`;
         }
+        let messageButtonHtml = '';
+        if (event.creator_id === 0 && loggedInUser && event.real_creator_id !== loggedInUser.acc_id) {
+            messageButtonHtml = `<button class="post-card-message-btn" data-event-id="${event.event_id}">Message Creator</button>`;
+        }
 
         postCard.innerHTML = `
             <div class="post-card-header">
-                <div class="post-card-header-img">${event.creator_username.charAt(0).toUpperCase()}</div>
+                <div class="post-card-header-img">${event.creator_username ? event.creator_username.charAt(0).toUpperCase() : ''}</div>
                 <span class="post-card-header-name">${event.creator_username}</span>
             </div>
             ${imageHtml}
@@ -538,6 +607,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="post-card-actions">
                     <button class="post-card-accept-btn" data-event-id="${event.event_id}">Accept</button>
                     <button class="post-card-decline-btn" data-event-id="${event.event_id}">Decline</button>
+                    ${messageButtonHtml}
                 </div>
             </div>
         `;
@@ -545,7 +615,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const acceptBtn = postCard.querySelector('.post-card-accept-btn');
         if (acceptBtn) {
             acceptBtn.addEventListener('click', (e) => {
-                // Use the event.event_id
                 setAttendance(event.event_id, 'accepted'); 
                 e.currentTarget.style.backgroundColor = '#4a9c4a';
                 e.currentTarget.textContent = 'Accepted!';
@@ -556,14 +625,241 @@ document.addEventListener('DOMContentLoaded', () => {
                 acceptBtn.textContent = 'Accept';
             });
         }
+
+        // Add message button listener
+        const messageBtn = postCard.querySelector('.post-card-message-btn');
+        if (messageBtn) {
+            messageBtn.addEventListener('click', () => {
+                openChatModal(event.event_id, event.name);
+            });
+        }
+
         return postCard;
     }
 
     function showProfilePage(userId) {
-        // ... (code unchanged from your file) ...
+        if (!loggedInUser) {
+            responseArea.textContent = 'Please log in to view profiles.';
+            return;
+        }
+
+        if (userId === 0) {
+            responseArea.textContent = 'Cannot view profile for Anonymous user.';
+            return;
+        }
+
+        responseArea.textContent = 'Loading profile...';
+        
+        fetch(`http://localhost:3000/api/users/${userId}/events`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.message) {
+                    responseArea.textContent = data.message;
+                    return;
+                }
+
+                const profile = data.profile;
+                const events = data.events;
+
+                profileAvatarLetter.textContent = profile.username.charAt(0).toUpperCase();
+                profileUsername.textContent = profile.username;
+                profileEmail.textContent = profile.email;
+
+                profileEventList.innerHTML = '';
+                if (events.length === 0) {
+                    profileEventList.innerHTML = '<p style="color: #a8a8a8; text-align: center;">No public events yet.</p>';
+                } else {
+                    events.forEach(event => {
+                        const postCard = buildPostCard(event);
+                        profileEventList.appendChild(postCard);
+                    });
+                }
+
+                showView('profile');
+                responseArea.textContent = 'Profile loaded.';
+            })
+            .catch(handleError);
     }
 
-    // --- 8. GLOBAL HELPER FUNCTIONS ---
+    // --- 8. ANONYMOUS CHAT SYSTEM ---
+
+    function openChatModal(eventId, eventName) {
+        currentChatEventId = eventId;
+        chatEventName.textContent = eventName;
+        chatMessages.innerHTML = '<p style="color: #a8a8a8;">Loading chat...</p>';
+        chatInput.value = '';
+        chatModal.style.display = 'flex';
+
+        // Create or get chat session
+        fetch('http://localhost:3000/api/chats/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                event_id: eventId,
+                requester_id: loggedInUser.acc_id
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.chat_id) {
+                currentChatId = data.chat_id;
+                loadChatMessages();
+                // Start polling for new messages
+                if (chatPollInterval) clearInterval(chatPollInterval);
+                chatPollInterval = setInterval(loadChatMessages, 3000);
+            } else {
+                chatMessages.innerHTML = `<p style="color: #ed4956;">${data.message}</p>`;
+            }
+        })
+        .catch(error => {
+            chatMessages.innerHTML = `<p style="color: #ed4956;">Error: ${error.message}</p>`;
+        });
+    }
+
+function loadChatMessages() {
+        if (!currentChatId) return;
+
+        fetch(`http://localhost:3000/api/chats/${currentChatId}/messages`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.messages) {
+                    displayChatMessages(data.messages, data.both_revealed, data.user_a_id, data.user_b_id, data.user_a_revealed, data.user_b_revealed);
+                }
+            })
+            .catch(error => {
+                console.error('Error loading messages:', error);
+            });
+    }
+
+    function displayChatMessages(messages, bothRevealed, userAId, userBId, userARevealed, userBRevealed) {
+        chatMessages.innerHTML = '';
+
+        if (messages.length === 0) {
+            chatMessages.innerHTML = '<p style="color: #a8a8a8;">No messages yet. Start the conversation!</p>';
+            return;
+        }
+
+        messages.forEach(msg => {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'chat-message';
+            
+            const isMyMessage = msg.sender_id === loggedInUser.acc_id;
+            messageDiv.classList.add(isMyMessage ? 'my-message' : 'their-message');
+
+            let senderName = 'Anonymous';
+            if (bothRevealed) {
+                senderName = msg.sender_username;
+            } else if (isMyMessage) {
+                senderName = 'You';
+            }
+
+            const timestamp = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            messageDiv.innerHTML = `
+                <div class="message-sender">${senderName}</div>
+                <div class="message-text">${msg.message_text}</div>
+                <div class="message-time">${timestamp}</div>
+            `;
+
+            chatMessages.appendChild(messageDiv);
+        });
+
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+
+        // Update shield button status
+        const myRevealed = (loggedInUser.acc_id === userAId && userARevealed) || 
+                          (loggedInUser.acc_id === userBId && userBRevealed);
+        
+        if (bothRevealed) {
+            chatShieldBtn.textContent = '✓ Identities Revealed';
+            chatShieldBtn.disabled = true;
+            chatShieldBtn.style.backgroundColor = '#4a9c4a';
+        } else if (myRevealed) {
+            chatShieldBtn.textContent = 'Waiting for other user...';
+            chatShieldBtn.disabled = true;
+            chatShieldBtn.style.backgroundColor = '#a8a8a8';
+        } else {
+            chatShieldBtn.textContent = '🛡 Reveal Identity';
+            chatShieldBtn.disabled = false;
+            chatShieldBtn.style.backgroundColor = '#0095f6';
+        }
+    }
+
+    chatSendBtn.addEventListener('click', sendChatMessage);
+    chatInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            sendChatMessage();
+        }
+    });
+
+    function sendChatMessage() {
+        const messageText = chatInput.value.trim();
+        if (!messageText || !currentChatId) return;
+
+        fetch(`http://localhost:3000/api/chats/${currentChatId}/message`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                sender_id: loggedInUser.acc_id,
+                message_text: messageText
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.message === 'Message sent successfully!') {
+                chatInput.value = '';
+                loadChatMessages();
+            }
+        })
+        .catch(error => {
+            console.error('Error sending message:', error);
+        });
+    }
+
+    chatShieldBtn.addEventListener('click', () => {
+        if (!currentChatId) return;
+
+        fetch(`http://localhost:3000/api/chats/${currentChatId}/reveal`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                user_id: loggedInUser.acc_id
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.message) {
+                loadChatMessages();
+            }
+        })
+        .catch(error => {
+            console.error('Error revealing identity:', error);
+        });
+    });
+
+    chatModalClose.addEventListener('click', () => {
+        chatModal.style.display = 'none';
+        if (chatPollInterval) {
+            clearInterval(chatPollInterval);
+            chatPollInterval = null;
+        }
+        currentChatId = null;
+        currentChatEventId = null;
+    });
+
+    chatModal.addEventListener('click', (e) => {
+        if (e.target === chatModal) {
+            chatModal.style.display = 'none';
+            if (chatPollInterval) {
+                clearInterval(chatPollInterval);
+                chatPollInterval = null;
+            }
+            currentChatId = null;
+            currentChatEventId = null;
+        }
+    });
+
+    // --- 9. GLOBAL HELPER FUNCTIONS ---
 
     function handleError(error) {
         responseArea.textContent = `Error: ${error.message}\n\nIs your server running?`;
@@ -592,6 +888,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- 9. INITIAL LOAD ---
+    // --- 10. INITIAL LOAD ---
     checkLoginState();
 });
